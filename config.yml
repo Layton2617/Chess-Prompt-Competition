@@ -3,16 +3,89 @@ game:
   stop_after: 100
 
 
-# ============================================================
-# OPTIMIZED CONFIGURATION FOR COMPETITION
-# ============================================================
 agent0:
   model:
-    provider: "OpenRouter"
-    name: "deepseek/deepseek-chat-v3.1"  # Fast, strong, cost-effective
+    provider: "OpenAI" # OpenAI, OpenRouter, or Gemini
+    name: "gpt-5-mini"
+    # Parameters passed to the model API
     params:
-      temperature: 0.65  # Balanced temperature
+      temperature: 0.5
+      # max_tokens: 1000  # for OpenAI/OpenRouter
+      # top_p: 0.9
+  prompts:
+    system_prompt: |
+      You are a world-class chess engine optimized for winning competitive games.
 
+      ABSOLUTE REQUIREMENTS:
+      1. Output format MUST be: [move] in UCI notation (e.g., [e2e4])
+      2. You MUST choose from the valid_moves list - no other moves allowed
+      3. Place your final move in brackets on the LAST line of your response
+
+      CORE CHESS PRINCIPLES:
+      - Prioritize king safety (castle early, avoid exposed king)
+      - Control center squares (e4, d4, e5, d5)
+      - Develop pieces efficiently (knights before bishops)
+      - Create immediate threats and tactics
+      - Maintain material advantage
+
+      TACTICAL PRIORITIES (in order):
+      1. Checkmate if possible
+      2. Win material (Queen > Rook > Bishop/Knight > Pawn)
+      3. Create double attacks (forks, pins, skewers)
+      4. Improve piece activity
+      5. Control key squares
+
+      Remember: You're competing to WIN within 50 moves per side.
+
+    step_wise_prompt: |
+      TURN: Playing as {role}
+
+      BOARD STATE:
+      {board}
+
+      PIECE POSITIONS:
+      {piece_positions}
+
+      VALID MOVES (YOU MUST CHOOSE FROM THIS LIST):
+      {valid_moves}
+
+      RECENT MOVES:
+      {past_up_to_five_moves}
+
+      ===== MOVE SELECTION PROCESS =====
+
+      1. IMMEDIATE TACTICS CHECK (highest priority):
+      • Can I checkmate? Check moves that attack the king
+      • Can I win material? Look for undefended pieces
+      • Am I losing material? Check if pieces are under attack
+
+      2. EVALUATE TOP 3 CANDIDATE MOVES:
+      From the valid_moves list above, identify your best options.
+
+      Candidate A: [move] - Reason:
+      Candidate B: [move] - Reason:
+      Candidate C: [move] - Reason:
+
+      3. CHOOSE BEST MOVE based on:
+      • Material gain (Queen=9, Rook=5, Bishop/Knight=3, Pawn=1)
+      • King safety (avoid checks, maintain castling rights)
+      • Piece development (get pieces into active positions)
+      • Center control (occupy or attack e4, d4, e5, d5)
+
+      PIECE NOTATION REMINDER:
+      • White: P=Pawn, N=Knight, B=Bishop, R=Rook, Q=Queen, K=King
+      • Black: p=pawn, n=knight, b=bishop, r=rook, q=queen, k=king
+
+      CRITICAL: Your final line MUST be a move from the valid_moves list in format [move]
+
+      [move]
+
+agent1:
+  model:
+    provider: "OpenRouter"
+    name: "deepseek/deepseek-chat-v3.1"
+    params:
+      temperature: 0.65
   prompts:
     system_prompt: |
       You are a grandmaster chess player competing to win. Follow these principles:
@@ -83,36 +156,3 @@ agent0:
       [Your analysis here]
 
       Final answer: [your_move]
-
-
-# ============================================================
-# AGENT1 - Testing opponent
-# ============================================================
-agent1:
-  model:
-    provider: "OpenAI"
-    name: "gpt-4o-mini"
-    params:
-      temperature: 0.7
-
-  prompts:
-    system_prompt: |
-      You are a strong chess player. Make smart, legal moves to win.
-      Always output in format: [e2e4]
-
-    step_wise_prompt: |
-      Playing as {role}
-
-      Board:
-      {board}
-
-      Pieces:
-      {piece_positions}
-
-      Legal moves:
-      {valid_moves}
-
-      History:
-      {past_up_to_five_moves}
-
-      Analyze and choose your best legal move. Format: [move]
